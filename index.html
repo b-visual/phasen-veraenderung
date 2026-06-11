@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phasen in der Veränderung</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f5f5f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  h1 {
+    font-family: Georgia, serif;
+    font-size: 1.1rem;
+    color: #333;
+    margin-bottom: 12px;
+    letter-spacing: 0.03em;
+  }
+
+  .hint {
+    font-size: 0.78rem;
+    color: #888;
+    margin-bottom: 16px;
+  }
+
+  .map-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  .map-wrapper img {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  }
+
+  /* Hotspot dots */
+  .dot {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #1a4fa0;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s, background 0.15s;
+    z-index: 10;
+  }
+
+  .dot:hover {
+    transform: translate(-50%, -50%) scale(1.25);
+    background: #e87c1e;
+  }
+
+  .dot.active {
+    background: #e87c1e;
+    box-shadow: 0 0 0 4px rgba(232,124,30,0.35);
+  }
+
+  /* Pulse ring */
+  .dot::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    border: 2px solid rgba(26,79,160,0.4);
+    animation: pulse 2s ease-out infinite;
+  }
+
+  @keyframes pulse {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.7); }
+  }
+
+  /* Popup */
+  .popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .popup-overlay.open {
+    display: flex;
+  }
+
+  .popup {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 28px 24px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.22);
+    position: relative;
+    animation: popIn 0.2s ease;
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.92) translateY(12px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .popup-step {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #e87c1e;
+    margin-bottom: 4px;
+  }
+
+  .popup-title {
+    font-family: Georgia, serif;
+    font-size: 1.4rem;
+    color: #1a1a2e;
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+
+  .popup-text {
+    font-size: 0.88rem;
+    color: #555;
+    line-height: 1.65;
+    border-left: 3px solid #e87c1e;
+    padding-left: 12px;
+    font-style: italic;
+  }
+
+  .popup-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+
+  .popup-close:hover { color: #333; }
+
+  .popup-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    gap: 8px;
+  }
+
+  .nav-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    background: #fafafa;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #444;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .nav-btn:hover {
+    background: #f0f0f0;
+    border-color: #bbb;
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .step-counter {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-top: 14px;
+  }
+
+  .popup-measures-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #1a4fa0;
+    margin: 16px 0 8px;
+  }
+
+  .popup-measures {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .popup-measures li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.83rem;
+    color: #333;
+    line-height: 1.5;
+  }
+
+  .popup-measures li::before {
+    content: '→';
+    color: #e87c1e;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .popup-body {
+    max-height: 52vh;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .popup-body::-webkit-scrollbar { width: 4px; }
+  .popup-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Phasen in der Veränderung — interaktiv</h1>
+<p class="hint">Klicke auf einen blauen Punkt, um mehr zur jeweiligen Phase zu erfahren.</p>
+
+<div class="map-wrapper" id="mapWrapper">
+  <img src="/mnt/user-data/uploads/FullSizeRender.jpeg" alt="Phasen in der Veränderung" id="baseImg">
+
+  <!-- Dots positioned as % of image — matching the blue dots in the sketch -->
+  <!-- 1. Impuls zum Wandel -->
+  <div class="dot" style="left:6%; top:38%" data-index="0" title="Impuls zum Wandel"></div>
+  <!-- 2. Aufbruch -->
+  <div class="dot" style="left:16%; top:43%" data-index="1" title="Aufbruch"></div>
+  <!-- 3. Schock -->
+  <div class="dot" style="left:25%; top:52%" data-index="2" title="Schock"></div>
+  <!-- 4. Leugnung -->
+  <div class="dot" style="left:33%; top:65%" data-index="3" title="Leugnung"></div>
+  <!-- 5. Verneinung/Ablehnung -->
+  <div class="dot" style="left:43%; top:38%" data-index="4" title="Verneinung/Ablehnung"></div>
+  <!-- 6. Rationale Einsicht -->
+  <div class="dot" style="left:52%; top:50%" data-index="5" title="Rationale Einsicht"></div>
+  <!-- 7. Emotionale Einsicht -->
+  <div class="dot" style="left:55%; top:62%" data-index="6" title="Emotionale Einsicht"></div>
+  <!-- 8. Tal der Tränen -->
+  <div class="dot" style="left:57%; top:80%" data-index="7" title="Tal der Tränen"></div>
+  <!-- 9. Akzeptanz -->
+  <div class="dot" style="left:72%; top:72%" data-index="8" title="Akzeptanz"></div>
+  <!-- 10. Ausprobieren -->
+  <div class="dot" style="left:78%; top:55%" data-index="9" title="Ausprobieren"></div>
+  <!-- 11. Erkenntnis/Erneuerung -->
+  <div class="dot" style="left:85%; top:38%" data-index="10" title="Erkenntnis/Erneuerung"></div>
+  <!-- 12. Integration -->
+  <div class="dot" style="left:93%; top:22%" data-index="11" title="Integration"></div>
+</div>
+
+<!-- Popup -->
+<div class="popup-overlay" id="overlay">
+  <div class="popup">
+    <button class="popup-close" id="closeBtn">✕</button>
+    <div class="popup-step" id="popupStep">Schritt 1</div>
+    <div class="popup-title" id="popupTitle">Titel</div>
+    <div class="popup-body">
+      <div class="popup-text" id="popupText">Dein Text hier …</div>
+      <div class="popup-measures-title">Maßnahmen für Führungskräfte</div>
+      <ul class="popup-measures" id="popupMeasures"></ul>
+    </div>
+    <div class="popup-nav">
+      <button class="nav-btn" id="prevBtn">← Vorherige Phase</button>
+      <button class="nav-btn" id="nextBtn">Nächste Phase →</button>
+    </div>
+    <div class="step-counter" id="stepCounter"></div>
+  </div>
+</div>
+
+<script>
+  const phases = [
+    {
+      title: "Impuls zum Wandel",
+      text: "Etwas macht den bisherigen Weg unhaltbar: Marktdruck, eine neue Strategie, Technologie oder eine Krise. Wer jetzt nicht klar kommuniziert warum die Veränderung kommt, verliert die Leute schon bevor es losgeht."
+    },
+    {
+      title: "Aufbruch",
+      text: "Die Nachricht ist draußen. Ein Teil des Teams ist motiviert — meistens die, die sowieso offen für Neues sind. Vorsicht: Diese Energie täuscht darüber hinweg, dass viele andere noch gar nicht mitgezogen haben."
+    },
+    {
+      title: "Schock",
+      text: "Die Veränderung wird konkret. Rollen ändern sich, Gewohntes fällt weg. Viele denken jetzt zum ersten Mal: 'Das betrifft mich wirklich.' Leistung kann kurz einbrechen — das ist normal, kein Versagen."
+    },
+    {
+      title: "Leugnung",
+      text: "\"Das wird sich schon wieder legen.\" oder \"Bei uns ist das anders.\" — Keine böse Absicht, sondern Selbstschutz. Menschen halten an dem fest, was sie kennen. Wer jetzt mit Fakten überzeugt, verliert. Wer zuhört, gewinnt."
+    },
+    {
+      title: "Verneinung / Ablehnung",
+      text: "Der Widerstand wird offen: in Meetings, im Flur, durch Nicht-Mitmachen. Das ist kein Problem — es zeigt, dass die Leute die Veränderung ernst nehmen. Jetzt ist die Frage: Was steckt hinter dem Nein?"
+    },
+    {
+      title: "Rationale Einsicht",
+      text: "Der Kopf sagt ja. Die Logik ist verstanden. Aber: Wer nur versteht, handelt noch nicht anders. Wer hier stehenbleibt, bekommt Zustimmung in Meetings — und draußen läuft alles wie vorher."
+    },
+    {
+      title: "Emotionale Einsicht",
+      text: "Es klickt. Die Veränderung fühlt sich nicht mehr aufgezwungen an, sondern sinnvoll. Das passiert nicht durch Präsentationen — sondern durch eigene kleine Erfahrungen oder das Erleben, dass Kolleg:innen es vorleben."
+    },
+    {
+      title: "Tal der Tränen",
+      text: "Der schwierigste Punkt: Das Alte ist weg, das Neue noch nicht da. Erschöpfung, Zweifel und Frustration treffen aufeinander. Wer hier Druck erhöht oder Fehler bestraft, zerstört Vertrauen. Wer hält und begleitet, gewinnt es."
+    },
+    {
+      title: "Akzeptanz",
+      text: "Die Energie kehrt zurück — diesmal in Richtung Zukunft. Mitarbeitende fragen nicht mehr ob, sondern wie. Jetzt ist der richtige Moment für echte Beteiligung: Wer mitgestalten darf, trägt mit."
+    },
+    {
+      title: "Ausprobieren",
+      text: "Teams testen, was im Alltag funktioniert. Nicht alles klappt sofort — das gehört dazu. Wer Fehler jetzt als Lernschritte behandelt, baut Vertrauen auf. Wer sie bestraft, bremst den ganzen Prozess."
+    },
+    {
+      title: "Erkenntnis / Erneuerung",
+      text: "Erste Erfolge werden sichtbar und spürbar. Das Vertrauen in die eigene Handlungsfähigkeit wächst. Jetzt lohnt es sich zu fragen: Was hat funktioniert? Was nicht? Was nehmen wir mit?"
+    },
+    {
+      title: "Integration",
+      text: "Das Neue ist normal geworden. Kaum jemand denkt mehr darüber nach. Wer diesen Moment nicht bewusst abschließt, verschenkt eine Chance: Teams, die wissen was sie geleistet haben, meistern die nächste Veränderung leichter."
+    }
+  ];
+
+  const measures = [
+    // 1. Impuls zum Wandel
+    ["Das Warum klar und einfach formulieren — in einem Satz","Botschaft persönlich überbringen, nicht per Mail oder Folien","Wichtige Meinungsbildner früh ins Boot holen","Offene Fragen sofort benennen, auch wenn noch keine Antwort da ist"],
+    // 2. Aufbruch
+    ["Alle informieren, nicht nur die Begeisterten","Konkrete nächste Schritte nennen — keine offenen Enden lassen","Raum für Fragen schaffen, nicht nur für Applaus","Erste erreichbare Ziele definieren, die schnell Orientierung geben"],
+    // 3. Schock
+    ["Präsent sein — nicht im Büro verschwinden","Leistungseinbruch erwarten und nicht dramatisieren","Klar sagen: Was ändert sich? Was bleibt?","Einzelgespräche suchen statt auf Gruppenformate warten"],
+    // 4. Leugnung
+    ["Zuhören ohne sofort zu korrigieren","Informelle Gespräche suchen — Kaffee, kurzer Walk","Gerüchten mit konkreten Fakten begegnen, nicht mit Schweigen","Nicht auf Zustimmung drängen — Druck verstärkt Widerstand"],
+    // 5. Verneinung / Ablehnung
+    ["Kritiker direkt ansprechen: Was genau stört dich?","Bedenken ernst nehmen und öffentlich adressieren","Kritische Stimmen in Arbeitsgruppen einladen","Nicht mit Macht durchdrücken — das erzeugt stillen Widerstand"],
+    // 6. Rationale Einsicht
+    ["Persönliche Relevanz klären: Was bedeutet das konkret für mich?","Mitarbeitende einladen, die Umsetzung mitzugestalten","Konkrete Beispiele zeigen, wie das Neue im Alltag aussieht","Raum für Skepsis lassen — nicht jede Frage ist ein Problem"],
+    // 7. Emotionale Einsicht
+    ["Vorbilder sichtbar machen: Wer lebt es schon vor?","Kleine Erfolge direkt ansprechen und würdigen","Persönliche Gespräche statt Gruppenevents","Fragen stellen statt überzeugen: Was hat sich für dich verändert?"],
+    // 8. Tal der Tränen
+    ["Fehler nicht bestrafen — explizit kommunizieren","Entlastung schaffen wo möglich: Prioritäten klären, Aufgaben nehmen","Regelmäßig fragen: Wie geht es dir wirklich?","Bisherige Leistung anerkennen — Menschen brauchen das hier besonders"],
+    // 9. Akzeptanz
+    ["Beteiligung anbieten: Wie setzen wir das gemeinsam um?","Kleine Erfolge sichtbar feiern — auch intern kommunizieren","Verbindliche nächste Schritte gemeinsam festlegen","Energie vorwärts lenken statt rückblicken"],
+    // 10. Ausprobieren
+    ["Explizit sagen: Fehler sind hier erlaubt und gewünscht","Kurze Feedback-Schleifen einbauen: Was lernst du gerade?","Pilotteams mit Sichtbarkeit ausstatten, nicht nur mit Aufgaben","Nicht zu früh skalieren — erst lernen, dann ausrollen"],
+    // 11. Erkenntnis / Erneuerung
+    ["Erfolge messen und konkret benennen","Was hat funktioniert? Kurze Retro im Team","Best Practices weitergeben — nicht jeder muss das Rad neu erfinden","Gewachsene Kompetenzen explizit anerkennen"],
+    // 12. Integration
+    ["Abschluss bewusst gestalten: Was haben wir geschafft?","Neue Arbeitsweisen in Prozesse und Onboarding verankern","Erfolg feiern — ohne Übertreibung, aber klar","Lessons Learned dokumentieren für die nächste Veränderung"]
+  ];
+
+  let current = 0;
+  const overlay = document.getElementById('overlay');
+  const popupStep = document.getElementById('popupStep');
+  const popupTitle = document.getElementById('popupTitle');
+  const popupText = document.getElementById('popupText');
+  const popupMeasures = document.getElementById('popupMeasures');
+  const stepCounter = document.getElementById('stepCounter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const dots = document.querySelectorAll('.dot');
+
+  function openPopup(index) {
+    current = index;
+    updatePopup();
+    overlay.classList.add('open');
+    dots.forEach(d => d.classList.remove('active'));
+    dots[index].classList.add('active');
+  }
+
+  function updatePopup() {
+    const p = phases[current];
+    const m = measures[current];
+    popupStep.textContent = `Phase ${current + 1} von ${phases.length}`;
+    popupTitle.textContent = p.title;
+    popupText.textContent = p.text;
+    popupMeasures.innerHTML = m.map(item => `<li>${item}</li>`).join('');
+    stepCounter.textContent = '● '.repeat(current + 1) + '○ '.repeat(phases.length - current - 1);
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === phases.length - 1;
+    // scroll body back to top on phase change
+    document.querySelector('.popup-body').scrollTop = 0;
+  }
+
+  function closePopup() {
+    overlay.classList.remove('open');
+    dots.forEach(d => d.classList.remove('active'));
+  }
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => openPopup(parseInt(dot.dataset.index)));
+  });
+
+  document.getElementById('closeBtn').addEventListener('click', closePopup);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closePopup(); });
+
+  prevBtn.addEventListener('click', () => {
+    if (current > 0) { current--; updatePopup(); dots.forEach(d=>d.classList.remove('active')); dots[current].classList.add('active'); }
+  });
+  nextBtn.addEventListener('click', () => {
+    if (current < phases.length - 1) { current++; updatePopup(); dots.forEach(d=>d.classList.remove('active')); dots[current].classList.add('active'); }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (!overlay.classList.contains('open')) return;
+    if (e.key === 'Escape') closePopup();
+    if (e.key === 'ArrowLeft' && current > 0) { current--; updatePopup(); dots.forEach(d=>d.classList.remove('active')); dots[current].classList.add('active'); }
+    if (e.key === 'ArrowRight' && current < phases.length-1) { current++; updatePopup(); dots.forEach(d=>d.classList.remove('active')); dots[current].classList.add('active'); }
+  });
+</script>
+</body>
+</html>
