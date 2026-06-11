@@ -463,7 +463,7 @@ function submitQuestion() {
   const q = document.getElementById('qText').value.trim();
   if(!q) return;
   // Link to Tally — replace YOUR_TALLY_ID with your actual form ID
-  const tallyUrl = 'https://tally.so/r/YOUR_TALLY_ID?frage='+encodeURIComponent(q);
+  const tallyUrl = 'https://tally.so/r/Gx7xEp?frage='+encodeURIComponent(q);
   window.open(tallyUrl,'_blank');
   document.getElementById('qForm').style.display='none';
   document.getElementById('qSuccess').style.display='block';
